@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once '../../connection/conn.php';
 require_once '../../connection/auth.php';
 date_default_timezone_set('Asia/Manila');
 
@@ -21,7 +22,30 @@ $_SESSION['LAST_ACTIVITY'] = time();
 // Validate session role
 validateSession('superadmin');
 
+if (isset($_GET['id'])) {
+    $admin_id = $_GET['id'];
+
+    // Query to fetch the barangay of the logged-in admin
+    $query = "SELECT barangay FROM admin WHERE id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $admin_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    // Check if the barangay was found
+    if ($result->num_rows === 1) {
+        $admin = $result->fetch_assoc();
+        $barangay = $admin['barangay'];
+    } else {
+        echo "Barangay not found.";
+        exit();
+    }
+} else {
+    header("Location: ../../login.php");
+    exit();
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -43,8 +67,7 @@ validateSession('superadmin');
     <link rel="stylesheet" href="../../assets/styles/utils/container.css">
     <link rel="stylesheet" href="../../assets/styles/utils/admin-form.css">
     <link rel="stylesheet" href="../../assets/styles/utils/messagebox.css">
-    <!-- Include SweetAlert2 and Select2 CSS and JS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <!-- jquery cdn -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
         integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -107,7 +130,7 @@ validateSession('superadmin');
         border-radius: 4px;
         max-height: 150px;
         overflow-y: auto;
-        z-index: 1000;
+        z-index: 1010;
         display: none;
     }
 
@@ -118,6 +141,10 @@ validateSession('superadmin');
 
     .dropdown-list li:hover {
         background-color: #f0f0f0;
+    }
+
+    body.no-scroll {
+        overflow: hidden;
     }
 </style>
 
@@ -165,11 +192,11 @@ validateSession('superadmin');
                 <div class="separator">
                     <div class="info">
                         <div class="info-header">
-                            <a href="barangayAcc.php">Accounts</a>
+                            <a href="barangayAcc.php">Accounts </a>
 
                             <!-- next page -->
                             <i class="fa-solid fa-chevron-right"></i>
-                            <a href="#">Create barangay admin</a>
+                            <a href="#">Create account for community worker</a>
                         </div>
 
 
@@ -184,11 +211,13 @@ validateSession('superadmin');
 
             <div class="main-wrapper">
                 <div class="main-container">
-                    <h2 class="admin-reg">Admin Registration</h2>
+                    <h2 class="admin-reg">Registration Form</h2>
 
-                    <form id="adminForm" action="../endpoints/create_admin.php" method="POST"
+                    <form id="adminForm" action="../endpoints/create_worker_sa.php" method="POST"
                         enctype="multipart/form-data">
                         <div class="admin-input_container">
+                            <input type="hidden" name="admin_id" value="<?php echo htmlspecialchars($admin_id); ?>">
+
                             <div class="admin-input">
                                 <label for="lastName">Last Name</label>
                                 <input type="text" id="lastName" name="lastName" class="input-lastName"
@@ -221,7 +250,6 @@ validateSession('superadmin');
                                     <option value="Female">Female</option>
                                 </select>
                             </div>
-
                             <div class="admin-input">
                                 <label for="birthday">Birthday</label>
                                 <input type="date" id="birthday" name="birthday" class="input-birthday"
@@ -234,32 +262,6 @@ validateSession('superadmin');
                                     required readonly>
                             </div>
 
-                            <script>
-
-                                document.getElementById('birthday').addEventListener('change', function () {
-                                    const birthday = new Date(this.value);
-
-                                    // Get the current date in Asia/Manila timezone
-                                    const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
-
-                                    if (birthday > now) {
-                                        document.getElementById('age').value = 0;
-                                        return;
-                                    }
-
-                                    let age = now.getFullYear() - birthday.getFullYear();
-                                    const isBirthdayPassedThisYear =
-                                        now.getMonth() > birthday.getMonth() ||
-                                        (now.getMonth() === birthday.getMonth() && now.getDate() >= birthday.getDate());
-
-                                    if (!isBirthdayPassedThisYear) {
-                                        age--;
-                                    }
-
-                                    document.getElementById('age').value = age > 0 ? age : 0;
-                                });
-                            </script>
-
                             <div class="admin-input">
                                 <label for="city">City/Province</label>
                                 <input type="text" id="city" name="city" class="input-city" placeholder=""
@@ -270,12 +272,17 @@ validateSession('superadmin');
                                 <label for="barangay">Barangay</label>
                                 <div class="dropdown-container">
                                     <input type="text" id="barangay" name="barangay" class="input-barangay"
-                                        placeholder="Enter Barangay" required autocomplete="off">
-                                    <span class="add-icon" id="add-barangay-btn">+</span>
+                                        placeholder="Enter Barangay" value="<?php echo htmlspecialchars($barangay); ?>"
+                                        required autocomplete="off">
+                                    <!-- <span class="add-icon" id="add-barangay-btn">+</span> -->
                                     <ul id="barangay-dropdown" class="dropdown-list"></ul>
                                 </div>
                             </div>
-
+                            <!-- <div class="admin-input">
+                                <label for="barangay">Barangay</label>
+                                <input type="text" id="barangay" name="barangay" class="input-barangay"
+                                    value="<?php echo htmlspecialchars($barangay); ?>" required placeholder="">
+                            </div> -->
 
                             <div class="admin-input">
                                 <label for="contactInfo">Contact Information</label>
@@ -302,33 +309,6 @@ validateSession('superadmin');
                                     </ul>
                                 </div>
                             </div>
-                            <script>
-                                document.addEventListener("DOMContentLoaded", function () {
-                                    const positionInput = document.getElementById("position");
-                                    const positionDropdown = document.getElementById("position-dropdown");
-
-                                    // Show dropdown when input is focused
-                                    positionInput.addEventListener("focus", function () {
-                                        positionDropdown.style.display = "block";
-                                    });
-
-                                    // Set input value when a position is selected
-                                    positionDropdown.addEventListener("click", function (event) {
-                                        if (event.target.tagName === "LI") {
-                                            positionInput.value = event.target.textContent;
-                                            positionDropdown.style.display = "none"; // Hide dropdown
-                                        }
-                                    });
-
-                                    // Hide dropdown if clicked outside
-                                    document.addEventListener("click", function (event) {
-                                        if (!positionInput.contains(event.target) && !positionDropdown.contains(event.target)) {
-                                            positionDropdown.style.display = "none";
-                                        }
-                                    });
-                                });
-
-                            </script>
 
                             <div class="admin-input">
                                 <label for="proofOfAppointment">Proof of appointment</label>
@@ -337,17 +317,12 @@ validateSession('superadmin');
                             </div>
 
                             <div class="admin-input">
-                                <label for="barangay_logo">Add barangay logo (optional)</label>
-                                <input type="file" id="barangay_logo" name="barangay_logo" class="input-barangay_logo">
-                            </div>
-
-                            <div class="admin-input">
                                 <label for="photo">Add your photo</label>
                                 <input type="file" id="photo" name="photo" class="input-photo">
                             </div>
                         </div>
-
-                        <!-- <div class="admin-photo">
+                        <!-- 
+                        <div class="admin-photo">
                             <label for="photo">Add your photo</label>
                             <input type="file" id="photo" name="photo" class="input-photo">
                         </div> -->
@@ -360,11 +335,11 @@ validateSession('superadmin');
                     </form>
                 </div>
             </div>
+    </div>
 
-        </main>
+    </main>
 
     </div>
-    <div class="loader"></div>
 
     <script>
         document.getElementById('create').addEventListener('click', function () {
@@ -389,12 +364,77 @@ validateSession('superadmin');
                 form.reportValidity();
             }
         });
-    </script>
+        // birthday
+        document.getElementById('birthday').addEventListener('change', function () {
+            const birthday = new Date(this.value);
 
-    <script>
+            // Get the current date in Asia/Manila timezone
+            const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+
+            if (birthday > now) {
+                document.getElementById('age').value = 0;
+                return;
+            }
+
+            let age = now.getFullYear() - birthday.getFullYear();
+            const isBirthdayPassedThisYear =
+                now.getMonth() > birthday.getMonth() ||
+                (now.getMonth() === birthday.getMonth() && now.getDate() >= birthday.getDate());
+
+            if (!isBirthdayPassedThisYear) {
+                age--;
+            }
+
+            document.getElementById('age').value = age > 0 ? age : 0;
+        });
+
         document.addEventListener("DOMContentLoaded", function () {
+            const positionInput = document.getElementById("position");
+            const positionDropdown = document.getElementById("position-dropdown");
             const barangayInput = document.getElementById("barangay");
-            const dropdownList = document.getElementById("barangay-dropdown");
+            const barangayDropdown = document.getElementById("barangay-dropdown");
+
+            // Static positions
+            const positions = ["Barangay Captain", "SK Kagawad", "Intern", "Volunteer"];
+
+            positionInput.addEventListener("focus", function () {
+                populateStaticDropdown(positions, positionDropdown, positionInput);
+                toggleBodyScroll(true);
+            });
+
+            document.addEventListener("click", function (event) {
+                if (!positionInput.contains(event.target) && !positionDropdown.contains(event.target)) {
+                    positionDropdown.style.display = "none";
+                    toggleBodyScroll(false);
+                }
+                if (!barangayInput.contains(event.target) && !barangayDropdown.contains(event.target)) {
+                    barangayDropdown.style.display = "none";
+                    toggleBodyScroll(false);
+                }
+            });
+
+            function populateStaticDropdown(values, dropdown, input) {
+                dropdown.innerHTML = "";
+                values.forEach(value => {
+                    const listItem = document.createElement("li");
+                    listItem.textContent = value;
+                    listItem.addEventListener("click", function () {
+                        input.value = value;
+                        dropdown.style.display = "none";
+                        toggleBodyScroll(false);
+                    });
+                    dropdown.appendChild(listItem);
+                });
+                dropdown.style.display = "block";
+            }
+
+            function toggleBodyScroll(disable) {
+                if (disable) {
+                    document.body.classList.add("no-scroll");
+                } else {
+                    document.body.classList.remove("no-scroll");
+                }
+            }
 
             // Fetch barangays from the server
             async function fetchBarangays() {
@@ -495,8 +535,6 @@ validateSession('superadmin');
                                         text: `${barangayName} has been added!`,
                                         timer: 2000,
                                         showConfirmButton: false
-                                    }).then(() => {
-                                        location.reload();
                                     });
                                 } else if (data.error === 'Barangay already exists') {
                                     Swal.fire({
@@ -635,44 +673,10 @@ validateSession('superadmin');
                 });
             });
         });
-
-        // // Save form data in localStorage
-        // document.querySelectorAll("#adminForm input, #adminForm select").forEach((input) => {
-        //     input.addEventListener("input", function () {
-        //         localStorage.setItem(this.id, this.value);
-        //     });
-        // });
-
-        // // Restore form data from localStorage
-        // window.addEventListener("load", function () {
-        //     document.querySelectorAll("#adminForm input, #adminForm select").forEach((input) => {
-        //         if (localStorage.getItem(input.id)) {
-        //             input.value = localStorage.getItem(input.id);
-        //         }
-        //     });
-        // });
-
-        // Clear localStorage and reload on successful submission
-        document.getElementById("adminForm").addEventListener("submit", function (e) {
-            e.preventDefault(); // Prevent default submission
-            const formData = new FormData(this);
-            fetch(this.action, { method: "POST", body: formData })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (data.success) {
-                        localStorage.clear(); // Clear saved data
-                        location.reload(); // Reload page
-                    } else {
-                        alert("Failed to submit the form: " + data.message);
-                    }
-                })
-                .catch((err) => console.error("Error:", err));
-        });
     </script>
-    <!-- import sidebar -->
-    <script src="../../includes/sidebar.js"></script>
+    <!-- sidebar import js -->
+    <script src="../../includes/sidebar.js"></script>C
 
-    <!-- import logo -->
     <script src="../../includes/logo.js"></script>
 
     <!-- import logout -->
@@ -682,8 +686,9 @@ validateSession('superadmin');
     <script src="../../assets/src/utils/menu-btn.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
+
+
+
 </body>
 
 </html>
