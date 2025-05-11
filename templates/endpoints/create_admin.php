@@ -1,3 +1,4 @@
+<!-- create barangay admin -->
 <?php
 session_start();
 

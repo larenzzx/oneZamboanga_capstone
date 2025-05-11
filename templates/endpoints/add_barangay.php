@@ -1,3 +1,4 @@
+<!-- add barangay -->
 <?php
 require_once '../../connection/conn.php';
 
