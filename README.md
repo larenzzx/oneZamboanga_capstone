@@ -56,3 +56,17 @@ Enter the database name "one_zambo" and click **Create**
 ### 4. To Run the Project Locally
 
 Make sure to start both Apache and MySQL then open your browser and go to: http://localhost/oneZamboanga_capstone
+
+To login use these accounts:
+Superadmin
+- username: superadmin
+- password: 123
+
+Barangay Admin
+- username: admin
+- password: 123
+
+Community worker
+- username: worker
+- password: 123
+
