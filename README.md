@@ -58,6 +58,7 @@ Enter the database name "one_zambo" and click **Create**
 Make sure to start both Apache and MySQL then open your browser and go to: http://localhost/oneZamboanga_capstone
 
 To login use these accounts:
+
 Superadmin
 - username: superadmin
 - password: 123
