@@ -68,6 +68,6 @@ Barangay Admin
 - password: 123
 
 Community worker
-- username: worker
+- username: worker123
 - password: 123
 
